@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "product-service"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-qgy2jzisam46"
+s3_prefix = "product-service"
+region = "us-east-1"
+profile = "serverless"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
