@@ -36,7 +36,7 @@ Resources:
           ResourcePath: "/*"
           HttpMethod: "*"
 
-  CreateProductRole:
+  CreateProductFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -67,14 +67,32 @@ Resources:
               ]
             Resource: !GetAtt ProductsTable.Arn
       Roles:
-        - !Ref CreateProductRole
+        - !Ref CreateProductFunctionRole
+
+  LogToCloudWatchPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LogToCloudWatchPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ]
+            Resource: "*"
+      Roles:
+        - !Ref CreateProductFunctionRole
 
   CreateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/lambda/
       Handler: create_product.handler
-      Role: !GetAtt CreateProductRole.Arn
+      Role: !GetAtt CreateProductFunctionRole.Arn
       Layers:
         - !Ref UtilsLayer
       Runtime: python3.8
