@@ -1,11 +1,135 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 512
+    Runtime: python3.8
+    Environment:
+      Variables:
+        PRODUCTS_TABLE_NAME: !Ref ProductsTable
+
+  Api:
+    OpenApiVersion: "2.0"
+    Cors:
+      AllowMethods: "'OPTIONS,POST,GET,PUT'"
+
 Resources:
-  CreateProduct:
+  UtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./src/utils/
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: python3.8
+
+  ProductsApi:
+    Type: AWS::Serverless::Api
+    DependsOn:
+      - ApiGWAccount
+    Properties:
+      StageName: Prod
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: "/*"
+          HttpMethod: "*"
+
+  CreateProductRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+
+  ProductsTableWritePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ProductsTableWritePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              [
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:ConditionCheckItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:BatchWriteItem",
+              ]
+            Resource: !GetAtt ProductsTable.Arn
+      Roles:
+        - !Ref CreateProductRole
+
+  CreateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/lambda/
       Handler: create_product.handler
-      Runtime: python3.6
+      Role: !GetAtt CreateProductRole.Arn
+      Layers:
+        - !Ref UtilsLayer
+      Runtime: python3.8
       Description: A function to create products.
+      Events:
+        CreateProductEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductsApi
+            Path: /ecommerce/products
+            Method: post
+
+  ProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: product_id
+          AttributeType: S
+        - AttributeName: product_category
+          AttributeType: S
+      KeySchema:
+        - AttributeName: product_id
+          KeyType: HASH
+        - AttributeName: product_category
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  APIGWCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  ApiGWAccount:
+    Type: "AWS::ApiGateway::Account"
+    Properties:
+      CloudWatchRoleArn: !GetAtt APIGWCloudWatchRole.Arn
+
+  ProductsApiUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /ecommerce/products/products-api-url
+      Value: !Sub "https://${ProductsApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+Outputs:
+  ProductsApi:
+    Description: "API Gateway endpoint URL for Prod stage for Products Service"
+    Value: !Sub "https://${ProductsApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"

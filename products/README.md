@@ -1,6 +1,10 @@
 # Instructions
 
-To deploy use following command:
+Commands:
+
+```
+sam build
+```
 
 ```
 sam deploy --guided
