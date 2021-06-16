@@ -15,3 +15,7 @@ def send_response(status_code, body=None):
 
 def generate_uuid():
     return uuid.uuid4()
+
+
+def validate_schema(schema, instance):
+    return jsonschema.validate(instance=instance, schema=schema)
