@@ -14,11 +14,11 @@ PRODUCTS_TABLE_NAME = os.environ.get("PRODUCTS_TABLE_NAME")
 def handler(event, context):
 
     request_body = json.loads(event["body"])
-    
+
     # Validate request body
     try:
         validate_schema(CREATE_PRODUCT_REQUEST_SCHEMA, request_body)
-    except Exception e:
+    except Exception as e:
         print(e)
         print(e.__dict__)
         return send_response(status_code=400)
