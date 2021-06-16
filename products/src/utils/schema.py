@@ -1,28 +1,28 @@
 CREATE_PRODUCT_REQUEST_SCHEMA = {
     "type": "object",
     "properties": {
-        "productName": {"description": "Name of the product", "type": "string"},
-        "productCategory": {
+        "product_name": {"description": "Name of the product", "type": "string"},
+        "product_category": {
             "description": "The Category of the product",
             "type": "string",
         },
-        "productDescription": {"description": "Desc of the product", "type": "string"},
-        "productPrice": {"description": "Price of the product", "type": "number"},
-        "productPriceCurrency": {
+        "product_description": {"description": "Desc of the product", "type": "string"},
+        "product_price": {"description": "Price of the product", "type": "number"},
+        "product_price_currency": {
             "description": "Currency of the product",
             "type": "string",
         },
-        "productAttributes": {
+        "product_attributes": {
             "description": "Attributes of the product",
             "type": "object",
         },
     },
     "required": [
-        "productName",
-        "productPrice",
-        "productDescription",
-        "productCategory",
-        "productPriceCurrency",
-        "productAttributes",
+        "product_name",
+        "product_price",
+        "product_description",
+        "product_category",
+        "product_price_currency",
+        "product_attributes",
     ],
 }
