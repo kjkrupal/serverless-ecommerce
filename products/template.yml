@@ -49,6 +49,19 @@ Resources:
               Service:
                 - "lambda.amazonaws.com"
 
+  GetProductsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+
   ProductsTableWritePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -68,6 +81,24 @@ Resources:
             Resource: !GetAtt ProductsTable.Arn
       Roles:
         - !Ref CreateProductFunctionRole
+  
+  ProductsTableReadPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ProductsTableReadPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              [
+                "dynamodb:GetItem",
+                "dynamodb:BatchReadItem",
+                "dynamodb:Query"
+              ]
+            Resource: !GetAtt ProductsTable.Arn
+      Roles:
+        - !Ref GetProductsFunctionRole
 
   LogToCloudWatchPolicy:
     Type: AWS::IAM::Policy
@@ -86,6 +117,7 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CreateProductFunctionRole
+        - !Ref GetProductsFunctionRole
 
   CreateProductFunction:
     Type: AWS::Serverless::Function
@@ -104,6 +136,24 @@ Resources:
             RestApiId: !Ref ProductsApi
             Path: /ecommerce/products
             Method: post
+  
+  GetProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda/
+      Handler: get_products.handler
+      Role: !GetAtt GetProductsFunctionRole.Arn
+      Layers:
+        - !Ref UtilsLayer
+      Runtime: python3.8
+      Description: A function to get products.
+      Events:
+        GetProductEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductsApi
+            Path: /ecommerce/product/{product_id}/
+            Method: get
 
   ProductsTable:
     Type: AWS::DynamoDB::Table
