@@ -49,6 +49,19 @@ Resources:
               Service:
                 - "lambda.amazonaws.com"
 
+  UpdateProductFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+
   ProductsTableWritePolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -64,10 +77,12 @@ Resources:
                 "dynamodb:ConditionCheckItem",
                 "dynamodb:DeleteItem",
                 "dynamodb:BatchWriteItem",
+                "dynamodb:Query"
               ]
             Resource: !GetAtt ProductsTable.Arn
       Roles:
         - !Ref CreateProductFunctionRole
+        - !Ref UpdateProductFunctionRole
 
   LogToCloudWatchPolicy:
     Type: AWS::IAM::Policy
@@ -86,6 +101,8 @@ Resources:
             Resource: "*"
       Roles:
         - !Ref CreateProductFunctionRole
+        - !Ref UpdateProductFunctionRole
+
 
   CreateProductFunction:
     Type: AWS::Serverless::Function
@@ -104,6 +121,24 @@ Resources:
             RestApiId: !Ref ProductsApi
             Path: /ecommerce/products
             Method: post
+
+  UpdateProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda/
+      Handler: update_product.handler
+      Role: !GetAtt UpdateProductFunctionRole.Arn
+      Layers:
+        - !Ref UtilsLayer
+      Runtime: python3.8
+      Description: A function to update product info.
+      Events:
+        CreateProductEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductsApi
+            Path: /ecommerce/products/{product_id}/
+            Method: put
 
   ProductsTable:
     Type: AWS::DynamoDB::Table
