@@ -9,6 +9,7 @@ Globals:
     Environment:
       Variables:
         PRODUCTS_TABLE_NAME: !Ref ProductsTable
+        PHOTOS_BUCKET_NAME: !Ref ProductPhotoBucket
 
   Api:
     OpenApiVersion: "2.0"
@@ -77,11 +78,14 @@ Resources:
                 "dynamodb:ConditionCheckItem",
                 "dynamodb:DeleteItem",
                 "dynamodb:BatchWriteItem",
+                "dynamodb:GetItem",
+                "dynamodb:Query",
               ]
             Resource: !GetAtt ProductsTable.Arn
       Roles:
         - !Ref CreateProductFunctionRole
-  
+        - !Ref UploadPhotoFunctionRole
+
   ProductsTableReadPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -91,11 +95,7 @@ Resources:
         Statement:
           - Effect: "Allow"
             Action:
-              [
-                "dynamodb:GetItem",
-                "dynamodb:BatchReadItem",
-                "dynamodb:Query"
-              ]
+              ["dynamodb:GetItem", "dynamodb:BatchReadItem", "dynamodb:Query"]
             Resource: !GetAtt ProductsTable.Arn
       Roles:
         - !Ref GetProductsFunctionRole
@@ -118,6 +118,7 @@ Resources:
       Roles:
         - !Ref CreateProductFunctionRole
         - !Ref GetProductsFunctionRole
+        - !Ref UploadPhotoFunctionRole
 
   CreateProductFunction:
     Type: AWS::Serverless::Function
@@ -136,7 +137,7 @@ Resources:
             RestApiId: !Ref ProductsApi
             Path: /ecommerce/products
             Method: post
-  
+
   GetProductsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -196,6 +197,55 @@ Resources:
       Type: String
       Name: /ecommerce/products/products-api-url
       Value: !Sub "https://${ProductsApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  UploadPhotoFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+
+  UploadPhotoFunctionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: UploadPhotoPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: ["s3:PutObject"]
+            Resource: !GetAtt ProductPhotoBucket.Arn
+      Roles:
+        - !Ref UploadPhotoFunctionRole
+
+  ProductPhotoBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ecommerce.products.photos
+
+  UploadPhotoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda/
+      Handler: upload_photo.handler
+      Role: !GetAtt UploadPhotoFunctionRole.Arn
+      Layers:
+        - !Ref UtilsLayer
+      Runtime: python3.8
+      Description: A function to generate pre-signed URL for photo upload.
+      Events:
+        UploadPhotoEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductsApi
+            Path: /ecommerce/products/{product_id}/upload/
+            Method: post
 
 Outputs:
   ProductsApi:

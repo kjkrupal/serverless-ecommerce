@@ -26,3 +26,13 @@ CREATE_PRODUCT_REQUEST_SCHEMA = {
         "product_attributes",
     ],
 }
+
+UPLOAD_PRODUCT_PHOTO_REQUEST_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "file_name": {"description": "Name of the photo file", "type": "string"}
+    },
+    "required": [
+        "file_name",
+    ],
+}
