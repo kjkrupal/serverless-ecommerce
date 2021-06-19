@@ -2,6 +2,17 @@ import jsonschema
 import uuid
 import json
 
+from decimal import Decimal
+
+
+class ProductsEncoder(json.JSONEncoder):
+    def default(self, obj):
+
+        if isinstance(obj, Decimal):
+            return float(obj)
+
+        return json.JSONEncoder.default(self, obj)
+
 
 def send_response(status_code, body=None):
     """
@@ -11,7 +22,7 @@ def send_response(status_code, body=None):
         "statusCode": status_code,
         "isBase64Encoded": "false",
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body) if body else None,
+        "body": json.dumps(body, cls=ProductsEncoder) if body else None,
     }
 
 
