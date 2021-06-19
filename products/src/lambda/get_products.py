@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
 from shared_utils import send_response
-from schema import GET_PRODUCT_REQUEST_SCHEMA
+
 from jsonschema import validate
 
 # Always read environment variables from execution context.
@@ -19,12 +19,14 @@ def handler(event, context):
     # product_category = event["pathParameters"]["product_id"]
 
     # Add product to dynamodb table.
-    dynamodb = boto3.resource('dynamodb')
+    dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(PRODUCTS_TABLE_NAME)
     try:
-        response = table.query(KeyConditionExpression=Key('product_id').eq(product_id))
+        response = table.query(KeyConditionExpression=Key("product_id").eq(product_id))
     except ClientError as e:
-        return send_response(status_code=200, body={"message":e.response['Error']['Message']})
+        return send_response(
+            status_code=200, body={"message": e.response["Error"]["Message"]}
+        )
 
     print(response["Items"])
     # Things to consider: Product ID is hash key and category is sort key.
