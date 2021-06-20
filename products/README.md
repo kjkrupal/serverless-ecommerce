@@ -1,6 +1,10 @@
 # Instructions
 
-Commands:
+## Basic Architecture
+![Basic Architecture](docs/product_service.png?raw=true "Products Service Architecture Diagram")
+
+
+## Commands
 
 ```
 sam build
